@@ -1,4 +1,4 @@
-package tw.feingqing.spring.springbucks.customer.support;
+package tw.fengqing.spring.springbucks.customer.support;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;

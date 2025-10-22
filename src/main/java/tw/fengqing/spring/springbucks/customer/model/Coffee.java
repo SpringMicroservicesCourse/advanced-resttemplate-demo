@@ -1,4 +1,4 @@
-package tw.feingqing.spring.springbucks.customer.model;
+package tw.fengqing.spring.springbucks.customer.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,6 +14,8 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Coffee implements Serializable {
+    private static final long serialVersionUID = 1L;
+    
     private Long id;
     private String name;
     private Money price;

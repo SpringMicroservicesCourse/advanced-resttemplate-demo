@@ -1,4 +1,4 @@
-package tw.feingqing.spring.springbucks.customer.support;
+package tw.fengqing.spring.springbucks.customer.support;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;

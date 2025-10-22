@@ -1,20 +1,20 @@
-package tw.feingqing.spring.springbucks.customer;
+package tw.fengqing.spring.springbucks.customer;
 
-import tw.feingqing.spring.springbucks.customer.model.Coffee;
-import tw.feingqing.spring.springbucks.customer.support.CustomConnectionKeepAliveStrategy;
+import tw.fengqing.spring.springbucks.customer.model.Coffee;
+import tw.fengqing.spring.springbucks.customer.support.CustomConnectionKeepAliveStrategy;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.core5.util.TimeValue;
-import org.apache.hc.core5.util.Timeout;
-import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.config.ConnectionConfig;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.Banner;
+import java.time.Duration;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -25,14 +25,12 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+import java.util.Optional;
 
 import java.net.URI;
-import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @SpringBootApplication
 @Slf4j
@@ -46,41 +44,30 @@ public class CustomerServiceApplication implements ApplicationRunner {
 				.run(args);
 	}
 
-	/**
-	 * 使用 httpclient5 連線池與自訂 KeepAlive 策略
-	 * PoolingHttpClientConnectionManager: 連線池管理器
-	 * CloseableHttpClient: HTTP 客戶端
-	 * CustomConnectionKeepAliveStrategy: 自訂連線存活策略
-	 */
 	@Bean
-	public HttpComponentsClientHttpRequestFactory requestFactory() {
-		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-		connectionManager.setMaxTotal(200); // 設定連線池最大連線數
-		connectionManager.setDefaultMaxPerRoute(20); // 單一路由最大連線數
-
-		// 設定 timeout
-		RequestConfig config = RequestConfig.custom()
-				.setConnectTimeout(Timeout.ofMilliseconds(100))
-				.setResponseTimeout(Timeout.ofMilliseconds(500))
+	public CloseableHttpClient httpClient() {
+		// 整合連線池管理器和 HttpClient 配置
+		return HttpClients.custom()
+				.setConnectionManager(PoolingHttpClientConnectionManagerBuilder.create()
+						.setMaxConnTotal(200) // 最大連線數
+						.setMaxConnPerRoute(20) // 每個路由最大連線數
+						.setDefaultConnectionConfig(ConnectionConfig.custom()
+								.setTimeToLive(TimeValue.ofSeconds(30)) // 連線存活時間
+								.build())
+						.build())
+				.evictIdleConnections(TimeValue.ofSeconds(30)) // 空閒連線清理
+				.disableAutomaticRetries() // 停用自動重試
+				.setKeepAliveStrategy(new CustomConnectionKeepAliveStrategy()) // 自定義 Keep-Alive 策略
 				.build();
-
-		CloseableHttpClient httpClient = HttpClients.custom()
-				.setConnectionManager(connectionManager)
-				.setDefaultRequestConfig(config)
-				.evictIdleConnections(TimeValue.ofSeconds(30)) // 30秒閒置自動關閉
-				.disableAutomaticRetries()
-				.setKeepAliveStrategy(new CustomConnectionKeepAliveStrategy())
-				.build();
-
-		return new HttpComponentsClientHttpRequestFactory(httpClient);
 	}
 
 	@Bean
 	public RestTemplate restTemplate(RestTemplateBuilder builder) {
-//		return new RestTemplate();
-
+		HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient());
+		requestFactory.setConnectTimeout(Duration.ofSeconds(5));
+		requestFactory.setReadTimeout(Duration.ofSeconds(1));
 		return builder
-				.requestFactory(this::requestFactory)
+				.requestFactory(() -> requestFactory)
 				.build();
 	}
 
@@ -110,6 +97,10 @@ public class CustomerServiceApplication implements ApplicationRunner {
 				new ParameterizedTypeReference<List<Coffee>>() {};
 		ResponseEntity<List<Coffee>> list = restTemplate
 				.exchange(coffeeUri, HttpMethod.GET, null, ptr);
-		list.getBody().forEach(c -> log.info("Coffee: {}", c));
+		Optional.ofNullable(list.getBody())
+				.ifPresentOrElse(
+					body -> body.forEach(c -> log.info("Coffee: {}", c)),
+					() -> log.warn("No coffee data received from server")
+				);
 	}
 }
