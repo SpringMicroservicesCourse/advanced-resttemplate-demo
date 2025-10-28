@@ -38,15 +38,17 @@ A comprehensive demonstration of **advanced RestTemplate customization** with Ap
 
 - JDK 21 or higher
 - Maven 3.8+ (or use included Maven Wrapper)
-- REST API server running on port 8080 (e.g., hateoas-waiter-service)
+- **springbucks2** server running on port 8080 (provides `/coffee` REST API)
 
 ### Quick Start
 
-**Step 1: Start REST API Server**
+**Step 1: Start REST API Server (springbucks2)**
 
 ```bash
-# Start hateoas-waiter-service (or any compatible REST API)
-cd ../hateoas-waiter-service
+# Navigate to springbucks2 project
+cd ../../Chapter\ 6\ Spring\ MVC實踐/springbucks2
+
+# Start the server
 mvn spring-boot:run
 ```
 
@@ -56,19 +58,27 @@ mvn spring-boot:run
 # Test coffee endpoint
 curl http://localhost:8080/coffee/?name=mocha
 
-# Expected: Coffee JSON or XML response
+# Expected: Coffee JSON response
+# {"id":4,"name":"mocha","price":150.00,...}
 ```
 
 **Step 3: Run advanced-resttemplate-demo**
 
 ```bash
+# Navigate back to advanced-resttemplate-demo
+cd ../../Chapter\ 7\ 訪問Web資源/advanced-resttemplate-demo
+
 # Using Maven
-./mvnw spring-boot:run
+mvn spring-boot:run
 
 # Or using compiled JAR
-./mvnw clean package
+mvn clean package
 java -jar target/advanced-resttemplate-demo-0.0.1-SNAPSHOT.jar
 ```
+
+**Project Relationship:**
+- **Server**: springbucks2 (Chapter 6) - Provides `/coffee` REST API
+- **Client**: advanced-resttemplate-demo (Chapter 7) - Consumes `/coffee` API
 
 ## Configuration
 
@@ -679,46 +689,39 @@ logging.level.org.apache.hc.client5.http=DEBUG
 </properties>
 
 <dependencies>
+    <!-- Spring Boot Web (includes RestTemplate) -->
     <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
-    <dependency>
-        <groupId>org.joda</groupId>
-        <artifactId>joda-money</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-lang3</artifactId>
-    </dependency>
+    
+    <!-- Apache HttpClient5 -->
     <dependency>
         <groupId>org.apache.httpcomponents.client5</groupId>
         <artifactId>httpclient5</artifactId>
     </dependency>
+    
+    <!-- Apache Commons Lang3 -->
+    <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+    </dependency>
+    
+    <!-- Joda Money -->
+    <dependency>
+        <groupId>org.joda</groupId>
+        <artifactId>joda-money</artifactId>
+        <version>${joda-money.version}</version>
+    </dependency>
+    
+    <!-- Lombok -->
     <dependency>
         <groupId>org.projectlombok</groupId>
         <artifactId>lombok</artifactId>
         <optional>true</optional>
     </dependency>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-test</artifactId>
-        <scope>test</scope>
-    </dependency>
 </dependencies>
-
-<dependencyManagement>
-    <dependencies>
-        <dependency>
-            <groupId>org.joda</groupId>
-            <artifactId>joda-money</artifactId>
-            <version>${joda-money.version}</version>
-        </dependency>
-    </dependencies>
-</dependencyManagement>
 ```
-
-**Note**: Dependency versions (except joda-money 2.0.2) are managed by Spring Boot Parent 3.4.5.
 
 ## Best Practices Demonstrated
 
